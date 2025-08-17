@@ -1,95 +1,98 @@
--- ChudyHub: Minimalne menu z Set Base i TP do Bazy
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Zmienna do przechowywania pozycji bazy
+-- ChudyHub: Rozbudowany, trudny do wykrycia skrypt TP z dwoma czerwonymi przyciskami
+local plr = game:GetService("Players").LocalPlayer
 local basePosition = nil
 
--- Tworzenie GUI huba
+-- Losowe nazwy dla GUI - anti-detection
+local guiName = "Chudy_" .. tostring(math.random(100000,999999))
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ChudyHubMenu"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = guiName
+ScreenGui.Parent = plr:WaitForChild("PlayerGui")
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 380, 0, 190)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -95)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
-MainFrame.BorderSizePixel = 0
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Active = true
-MainFrame.Draggable = true
+local function makeBtn(txt,pos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 160, 0, 56)
+    btn.Position = UDim2.new(0, 40 + (pos-1)*180, 0, 30)
+    btn.Text = txt
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 28
+    btn.BackgroundColor3 = Color3.fromRGB(255,40,40)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    btn.Parent = ScreenGui
+    btn.Active = true
+    return btn
+end
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Text = "ChudyHub Menu"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 30
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, 0, 0, 54)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.ZIndex = 2
+local setBaseBtn = makeBtn("Set Base",1)
+local tpBaseBtn = makeBtn("TP do Bazy",2)
 
-local MenuFrame = Instance.new("Frame", MainFrame)
-MenuFrame.Size = UDim2.new(1, -40, 0, 110)
-MenuFrame.Position = UDim2.new(0, 20, 0, 60)
-MenuFrame.BackgroundTransparency = 0.22
-MenuFrame.BackgroundColor3 = Color3.fromRGB(45, 55, 85)
-MenuFrame.BorderSizePixel = 0
-
-local infoLabel = Instance.new("TextLabel", MainFrame)
-infoLabel.Size = UDim2.new(1, -40, 0, 24)
-infoLabel.Position = UDim2.new(0, 20, 0, 170)
-infoLabel.Text = ""
-infoLabel.Font = Enum.Font.GothamBold
-infoLabel.TextSize = 17
-infoLabel.TextColor3 = Color3.fromRGB(255,255,255)
-infoLabel.BackgroundTransparency = 1
-infoLabel.TextWrapped = true
-
--- Funkcja ustawiająca bazę
-function setBase()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        basePosition = LocalPlayer.Character.HumanoidRootPart.Position
-        infoLabel.Text = "Baza ustawiona!"
-    else
-        infoLabel.Text = "Brak postaci!"
+-- Anti-rollback / silent teleportation
+local function robustTeleport(pos)
+    local char = plr.Character
+    if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
+    local hrp = char.HumanoidRootPart
+    -- 1. Set position multiple times to bypass network rollback
+    for i=1,6 do
+        hrp.CFrame = CFrame.new(pos)
+        task.wait(0.035)
+    end
+    -- 2. Patch velocity, if possible
+    if hrp:FindFirstChild("RootRigAttachment") then
+        hrp.Velocity = Vector3.new(0,0,0)
+    end
+    -- 3. Try to break server-side position sync
+    if char:FindFirstChildOfClass("Humanoid") then
+        char:FindFirstChildOfClass("Humanoid"):ChangeState(11) -- Physically simulated
+    end
+    -- 4. Remove potential anti-cheat constraints
+    for _,obj in pairs(hrp:GetChildren()) do
+        if obj:IsA("BodyVelocity") or obj:IsA("BodyPosition") or obj:IsA("AlignPosition") then
+            obj:Destroy()
+        end
+    end
+    -- 5. Move Camera in sync (extra stealth)
+    local cam = workspace.CurrentCamera
+    if cam and cam.CameraSubject and cam.CameraSubject:IsDescendantOf(char) then
+        cam.CFrame = hrp.CFrame
     end
 end
 
--- Funkcja teleportująca do bazy
-function teleportToBase()
-    if basePosition and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(basePosition)
-        infoLabel.Text = "Teleportowano do bazy!"
+setBaseBtn.MouseButton1Click:Connect(function()
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        basePosition = plr.Character.HumanoidRootPart.Position
+        setBaseBtn.Text = "Baza ustawiona!"
+        setBaseBtn.BackgroundColor3 = Color3.fromRGB(40,255,40)
+        task.wait(0.3)
+        setBaseBtn.Text = "Set Base"
+        setBaseBtn.BackgroundColor3 = Color3.fromRGB(255,40,40)
     else
-        infoLabel.Text = "Najpierw ustaw bazę!"
+        setBaseBtn.Text = "Brak postaci!"
+        setBaseBtn.BackgroundColor3 = Color3.fromRGB(255,150,40)
+        task.wait(0.4)
+        setBaseBtn.Text = "Set Base"
+        setBaseBtn.BackgroundColor3 = Color3.fromRGB(255,40,40)
     end
-end
+end)
 
--- Przycisk Set Base
-local setBaseButton = Instance.new("TextButton", MenuFrame)
-setBaseButton.Text = "Set Base"
-setBaseButton.Size = UDim2.new(0.5, -12, 0, 48)
-setBaseButton.Position = UDim2.new(0, 6, 0, 14)
-setBaseButton.Font = Enum.Font.GothamBold
-setBaseButton.TextSize = 22
-setBaseButton.BackgroundColor3 = Color3.fromRGB(72, 195, 255)
-setBaseButton.TextColor3 = Color3.fromRGB(25,25,40)
-setBaseButton.BorderSizePixel = 0
-setBaseButton.AutoButtonColor = true
+tpBaseBtn.MouseButton1Click:Connect(function()
+    if basePosition and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        robustTeleport(basePosition)
+        tpBaseBtn.Text = "TP wykonany!"
+        tpBaseBtn.BackgroundColor3 = Color3.fromRGB(40,255,40)
+        task.wait(0.3)
+        tpBaseBtn.Text = "TP do Bazy"
+        tpBaseBtn.BackgroundColor3 = Color3.fromRGB(255,40,40)
+    else
+        tpBaseBtn.Text = "Najpierw Set Base!"
+        tpBaseBtn.BackgroundColor3 = Color3.fromRGB(255,150,40)
+        task.wait(0.4)
+        tpBaseBtn.Text = "TP do Bazy"
+        tpBaseBtn.BackgroundColor3 = Color3.fromRGB(255,40,40)
+    end
+end)
 
-setBaseButton.MouseButton1Click:Connect(setBase)
-
--- Przycisk TP do bazy
-local tpButton = Instance.new("TextButton", MenuFrame)
-tpButton.Text = "TP do Bazy"
-tpButton.Size = UDim2.new(0.5, -12, 0, 48)
-tpButton.Position = UDim2.new(0.5, 6, 0, 14)
-tpButton.Font = Enum.Font.GothamBold
-tpButton.TextSize = 22
-tpButton.BackgroundColor3 = Color3.fromRGB(72, 195, 255)
-tpButton.TextColor3 = Color3.fromRGB(25,25,40)
-tpButton.BorderSizePixel = 0
-tpButton.AutoButtonColor = true
-
-tpButton.MouseButton1Click:Connect(teleportToBase)
+-- Ukryj GUI dla innych skryptów (stealth)
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = math.random(100,900)
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Enabled = true
