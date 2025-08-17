@@ -1,5 +1,7 @@
+print("ChudyHub startuje!") -- Debug start
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -15,8 +17,8 @@ iconBtn.TextSize = 38
 iconBtn.Font = Enum.Font.GothamBold
 iconBtn.TextColor3 = Color3.fromRGB(255,255,255)
 iconBtn.BorderSizePixel = 0
+print("Ikonka utworzona") -- Debug
 
--- Efekt podświetlenia ikonki
 iconBtn.MouseEnter:Connect(function()
     iconBtn.BackgroundColor3 = Color3.fromRGB(135, 50, 255)
 end)
@@ -38,7 +40,6 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 MainFrame.BorderSizePixel = 0
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 
--- Gradient tła (prosty, bo Delta nie obsługuje UIGradient)
 local gradientFrame = Instance.new("Frame", MainFrame)
 gradientFrame.Size = UDim2.new(1,0,1,0)
 gradientFrame.Position = UDim2.new(0,0,0,0)
@@ -95,37 +96,45 @@ for i, btn in ipairs(buttons) do
     end)
 
     Button.MouseButton1Click:Connect(function()
+        print("Kliknięto: "..btn.Name) -- Debug
         if btn.Name == "Set Base" then
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 basePosition = LocalPlayer.Character.HumanoidRootPart.Position
                 Title.Text = "Baza ustawiona!"
+            else
+                Title.Text = "Brak postaci!"
             end
         elseif btn.Name == "Brainrot TP" then
             if basePosition and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(basePosition)
                 Title.Text = "Teleport do bazy!"
+                print("TP do bazy!") -- Debug
             else
                 Title.Text = "Najpierw ustaw bazę!"
             end
         elseif btn.Name == "Exit" then
             ScreenGui.Enabled = false
+            print("Hub zamknięty!") -- Debug
         end
     end)
 end
 
--- Animacja otwierania okna
+-- Animacja otwierania okna (uproszczona)
 MainFrame.Size = UDim2.new(0, 0, 0, 0)
 gradientFrame.Size = UDim2.new(0, 0, 0, 0)
 iconBtn.MouseButton1Click:Connect(function()
     if not ScreenGui.Enabled then
         ScreenGui.Enabled = true
-        TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back), {Size = UDim2.new(0, 420, 0, 280)}):Play()
-        TweenService:Create(gradientFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back), {Size = UDim2.new(1,0,1,0)}):Play()
+        -- Delta: uproszczona animacja
+        TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(0, 420, 0, 280)}):Play()
+        TweenService:Create(gradientFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(1,0,1,0)}):Play()
+        print("Hub otwarty!") -- Debug
     else
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-        TweenService:Create(gradientFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-        wait(0.42)
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        TweenService:Create(gradientFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        wait(0.32)
         ScreenGui.Enabled = false
+        print("Hub zamknięty!") -- Debug
     end
 end)
 
@@ -135,13 +144,14 @@ LocalPlayer.Backpack.ChildAdded:Connect(function(child)
         if basePosition and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(basePosition)
             Title.Text = "Brainrot: Teleportacja!"
+            print("Automatyczny TP do bazy!") -- Debug
         else
             Title.Text = "Brainrot: Najpierw ustaw bazę!"
         end
     end
 end)
 
--- Brainrot ESP: podświetlanie brainrotów i wyświetlanie największej wartości zarobku
+-- Brainrot ESP: BillboardGui nad brainrotem z największą wartością
 local espColor = Color3.fromRGB(255, 255, 0)
 local espObjects = {}
 
@@ -189,7 +199,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Podświetl najlepszy brainrot na inny kolor
     if bestBrainrot and espObjects[bestBrainrot] then
         local label = espObjects[bestBrainrot]:FindFirstChildOfClass("TextLabel")
         if label then
@@ -198,3 +207,5 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+print("ChudyHub załadowany!") -- Debug koniec
